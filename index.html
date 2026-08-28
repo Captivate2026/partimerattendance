@@ -294,6 +294,7 @@
         <p id="resultLate"></p>
         <p id="resultOt"></p>
       </div>
+      <button class="btn-action" id="btnCheckoutNow" style="display:none; margin-top:8px;">Check Out Now</button>
       <button class="btn-primary" id="btnDone">Done</button>
     </div>
 
@@ -389,7 +390,7 @@
         document.getElementById('otSection').classList.toggle('hidden', currentAction !== 'OUT');
         stepPin.classList.add('hidden');
         stepAction.classList.remove('hidden');
-        startCamera();
+        promptForShiftOutlet();
       })
       .catch(() => {
         setLoading(btn, false, 'Continue');
@@ -398,11 +399,34 @@
   }
 
   let mediaStream = null;
+  let cameraStarted = false;
   const videoEl = document.getElementById('cameraVideo');
   const canvasEl = document.getElementById('cameraCanvas');
   const cameraSlot = document.getElementById('cameraSlot');
   const btnSnap = document.getElementById('btnSnap');
   const btnRetake = document.getElementById('btnRetake');
+
+  function promptForShiftOutlet() {
+    cameraStarted = false;
+    videoEl.style.display = 'none';
+    document.getElementById('preview').style.display = 'none';
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'none';
+    cameraSlot.classList.remove('hidden');
+    cameraSlot.textContent = 'Select shift and outlet to continue';
+  }
+
+  function maybeStartCamera() {
+    const shift = document.getElementById('shiftSelect').value;
+    const outlet = document.getElementById('outletSelect').value;
+    if (shift && outlet && !cameraStarted) {
+      cameraStarted = true;
+      startCamera();
+    }
+  }
+
+  document.getElementById('shiftSelect').addEventListener('change', maybeStartCamera);
+  document.getElementById('outletSelect').addEventListener('change', maybeStartCamera);
 
   function stopCamera() {
     if (mediaStream) {
@@ -462,6 +486,7 @@
 
   document.getElementById('btnBack').addEventListener('click', () => {
     stopCamera();
+    cameraStarted = false;
     photoBase64 = '';
     document.getElementById('preview').style.display = 'none';
     document.getElementById('btnSubmit').disabled = true;
@@ -548,10 +573,32 @@
       isLate ? (data.lateMinutes + ' minutes late') : '';
     document.getElementById('resultOt').textContent =
       (data.otHours && data.otHours > 0) ? ('OT logged: ' + data.otHours + ' hours') : '';
+    document.getElementById('btnCheckoutNow').style.display =
+      data.type === 'IN' ? 'block' : 'none';
   }
+
+  document.getElementById('btnCheckoutNow').addEventListener('click', () => {
+    currentAction = 'OUT';
+    document.getElementById('actionBadge').textContent = 'CHECK OUT';
+    document.getElementById('btnSubmit').classList.add('out');
+    document.getElementById('otSection').classList.remove('hidden');
+    document.getElementById('shiftSelect').value = '';
+    document.getElementById('outletSelect').value = '';
+    document.getElementById('otCheckbox').checked = false;
+    document.getElementById('otHours').value = '';
+    document.getElementById('otHoursWrap').classList.add('hidden');
+    photoBase64 = '';
+    document.getElementById('btnSubmit').disabled = true;
+    document.getElementById('btnSubmit').textContent = 'Take selfie first';
+    promptForShiftOutlet();
+    stepResult.classList.add('hidden');
+    stepAction.classList.remove('hidden');
+  });
 
   document.getElementById('btnDone').addEventListener('click', () => {
     stopCamera();
+    cameraStarted = false;
+    document.getElementById('btnCheckoutNow').style.display = 'none';
     photoBase64 = '';
     document.getElementById('pinInput').value = '';
     document.getElementById('preview').style.display = 'none';
