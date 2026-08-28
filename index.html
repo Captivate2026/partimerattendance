@@ -4,7 +4,7 @@
 <base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Trainer Attendance</title>
+<title>Picker Attendance</title>
 <style>
   :root{
     --ink:#16213A;
@@ -234,7 +234,7 @@
 
     <!-- STEP 1: PIN entry -->
     <div id="stepPin">
-      <h1>Trainer Attendance</h1>
+      <h1>Picker Attendance</h1>
       <p class="sub">Enter your IC number to check in or out.</p>
       <label for="pinInput">IC Number</label>
       <input type="tel" id="pinInput" inputmode="numeric" placeholder="e.g. 901231001234" maxlength="20">
@@ -250,7 +250,14 @@
       </div>
 
       <div id="shiftOutletFields">
-        <label for="shiftSelect">Shift</label>
+        <label for="projectSelect">Project</label>
+        <select id="projectSelect" class="select-field">
+          <option value="">Select project</option>
+          <option value="Grab">Grab</option>
+          <option value="Food Panda">Food Panda</option>
+        </select>
+
+        <label for="shiftSelect" style="margin-top:14px;">Shift</label>
         <select id="shiftSelect" class="select-field">
           <option value="">Select shift</option>
         </select>
@@ -311,6 +318,7 @@
 
   let currentPin = '';
   let currentAction = 'IN';
+  let currentProject = '';
   let currentShift = '';
   let currentOutlet = '';
   let photoBase64 = '';
@@ -398,11 +406,12 @@
         stepAction.classList.remove('hidden');
 
         if (currentAction === 'OUT') {
+          currentProject = data.project || '';
           currentShift = data.shift || '';
           currentOutlet = data.outlet || '';
           document.getElementById('shiftOutletFields').classList.add('hidden');
           const info = document.getElementById('checkoutInfo');
-          info.textContent = 'Shift: ' + (currentShift || '—') + ' · Outlet: ' + (currentOutlet || '—');
+          info.textContent = 'Project: ' + (currentProject || '—') + ' · Shift: ' + (currentShift || '—') + ' · Outlet: ' + (currentOutlet || '—');
           info.classList.remove('hidden');
           cameraStarted = true;
           startCamera();
@@ -433,18 +442,20 @@
     btnSnap.style.display = 'none';
     btnRetake.style.display = 'none';
     cameraSlot.classList.remove('hidden');
-    cameraSlot.textContent = 'Select shift and outlet to continue';
+    cameraSlot.textContent = 'Select project, shift and outlet to continue';
   }
 
   function maybeStartCamera() {
+    const project = document.getElementById('projectSelect').value;
     const shift = document.getElementById('shiftSelect').value;
     const outlet = document.getElementById('outletSelect').value;
-    if (shift && outlet && !cameraStarted) {
+    if (project && shift && outlet && !cameraStarted) {
       cameraStarted = true;
       startCamera();
     }
   }
 
+  document.getElementById('projectSelect').addEventListener('change', maybeStartCamera);
   document.getElementById('shiftSelect').addEventListener('change', maybeStartCamera);
   document.getElementById('outletSelect').addEventListener('change', maybeStartCamera);
 
@@ -513,6 +524,7 @@
     document.getElementById('btnSubmit').textContent = 'Take selfie first';
     document.getElementById('shiftOutletFields').classList.remove('hidden');
     document.getElementById('checkoutInfo').classList.add('hidden');
+    document.getElementById('projectSelect').value = '';
     document.getElementById('shiftSelect').value = '';
     document.getElementById('outletSelect').value = '';
     document.getElementById('otCheckbox').checked = false;
@@ -531,17 +543,20 @@
     const errEl = document.getElementById('actionError');
     errEl.textContent = '';
 
-    let shift, outlet;
+    let project, shift, outlet;
     if (currentAction === 'IN') {
+      project = document.getElementById('projectSelect').value;
       shift = document.getElementById('shiftSelect').value;
       outlet = document.getElementById('outletSelect').value;
-      if (!shift || !outlet) {
-        errEl.textContent = 'Please select both shift and outlet.';
+      if (!project || !shift || !outlet) {
+        errEl.textContent = 'Please select project, shift and outlet.';
         return;
       }
+      currentProject = project;
       currentShift = shift;
       currentOutlet = outlet;
     } else {
+      project = currentProject;
       shift = currentShift;
       outlet = currentOutlet;
     }
@@ -564,6 +579,7 @@
       body: JSON.stringify({
         pin: currentPin,
         type: currentAction,
+        project: project,
         shift: shift,
         outlet: outlet,
         otHours: otHours,
@@ -615,7 +631,7 @@
     document.getElementById('otSection').classList.remove('hidden');
     document.getElementById('shiftOutletFields').classList.add('hidden');
     const info = document.getElementById('checkoutInfo');
-    info.textContent = 'Shift: ' + (currentShift || '—') + ' · Outlet: ' + (currentOutlet || '—');
+    info.textContent = 'Project: ' + (currentProject || '—') + ' · Shift: ' + (currentShift || '—') + ' · Outlet: ' + (currentOutlet || '—');
     info.classList.remove('hidden');
     document.getElementById('otCheckbox').checked = false;
     document.getElementById('otHours').value = '';
@@ -642,6 +658,7 @@
     document.getElementById('btnSubmit').textContent = 'Take selfie first';
     document.getElementById('shiftOutletFields').classList.remove('hidden');
     document.getElementById('checkoutInfo').classList.add('hidden');
+    document.getElementById('projectSelect').value = '';
     document.getElementById('shiftSelect').value = '';
     document.getElementById('outletSelect').value = '';
     document.getElementById('otCheckbox').checked = false;
