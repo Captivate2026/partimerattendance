@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Trainer Attendance</title>
+<style>
+  :root{
+    --ink:#16213A;
+    --ink-soft:#5B6B8C;
+    --paper:#F5F6FA;
+    --card:#FFFFFF;
+    --line:#E4E7EF;
+    --accent:#2C5EF6;
+    --accent-dim:#EAF0FE;
+    --good:#1B9E6B;
+    --late:#D9622B;
+    --radius:20px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:20px;
+  }
+  .app{
+    width:100%;
+    max-width:380px;
+  }
+  .clock{
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .clock .time{
+    font-size:44px;
+    font-weight:700;
+    letter-spacing:-1px;
+    font-variant-numeric:tabular-nums;
+  }
+  .clock .date{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin-top:2px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    padding:28px 24px;
+    box-shadow:0 1px 3px rgba(22,33,58,0.04);
+  }
+  h1{
+    font-size:19px;
+    margin:0 0 4px;
+    letter-spacing:-0.2px;
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin:0 0 22px;
+    line-height:1.4;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  input[type=tel]{
+    width:100%;
+    padding:16px 14px;
+    font-size:22px;
+    letter-spacing:1px;
+    border:2px solid var(--line);
+    border-radius:14px;
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+    outline:none;
+    transition:border-color .15s;
+    -webkit-appearance:none;
+  }
+  input[type=tel]:focus{border-color:var(--accent);}
+  .select-field{
+    width:100%;
+    padding:14px;
+    font-size:16px;
+    border:2px solid var(--line);
+    border-radius:14px;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+    -webkit-appearance:none;
+    appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%235B6B8C" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+  }
+  .select-field:focus{border-color:var(--accent);}
+  .ot-toggle-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .ot-toggle-row input[type=checkbox]{
+    width:20px; height:20px;
+    accent-color:var(--accent);
+  }
+  button{
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    -webkit-appearance:none;
+  }
+  .btn-primary{
+    background:var(--ink);
+    color:#fff;
+    margin-top:18px;
+  }
+  .btn-primary:disabled{opacity:.4;}
+  .btn-action{
+    background:var(--accent);
+    color:#fff;
+    font-size:18px;
+    padding:20px;
+  }
+  .btn-action.out{background:var(--ink);}
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    font-weight:600;
+    font-size:14px;
+    margin-top:14px;
+    padding:8px;
+  }
+  .greeting{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .greeting .name{
+    font-size:21px;
+    font-weight:700;
+    margin-top:4px;
+  }
+  .badge{
+    display:inline-block;
+    background:var(--accent-dim);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:700;
+    padding:5px 12px;
+    border-radius:100px;
+    letter-spacing:.3px;
+  }
+  .preview{
+    width:100%;
+    border-radius:14px;
+    margin-bottom:16px;
+    display:none;
+    border:2px solid var(--line);
+  }
+  #cameraVideo{transform:scaleX(-1); object-fit:cover; background:#000;}
+  .camera-slot{
+    border:2px dashed var(--line);
+    border-radius:14px;
+    padding:32px 16px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+    margin-bottom:16px;
+    cursor:pointer;
+  }
+  .result{
+    text-align:center;
+  }
+  .result .icon{
+    width:56px; height:56px;
+    border-radius:50%;
+    background:var(--accent-dim);
+    color:var(--good);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 16px;
+    font-size:28px;
+  }
+  .result.late .icon{background:#FBEAE0; color:var(--late);}
+  .result h2{margin:0 0 6px; font-size:20px;}
+  .result p{color:var(--ink-soft); font-size:14px; margin:0 0 4px;}
+  .error{
+    color:var(--late);
+    font-size:13px;
+    text-align:center;
+    margin-top:12px;
+    min-height:16px;
+  }
+  .hidden{display:none !important;}
+  .spin{
+    width:18px;height:18px;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    border-radius:50%;
+    display:inline-block;
+    vertical-align:middle;
+    margin-right:8px;
+    animation:sp .7s linear infinite;
+  }
+  @keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="clock">
+    <div class="time" id="liveTime">--:--</div>
+    <div class="date" id="liveDate"></div>
+  </div>
+
+  <div class="card">
+
+    <!-- STEP 1: PIN entry -->
+    <div id="stepPin">
+      <h1>Trainer Attendance</h1>
+      <p class="sub">Enter your IC number to check in or out.</p>
+      <label for="pinInput">IC Number</label>
+      <input type="tel" id="pinInput" inputmode="numeric" placeholder="e.g. 901231001234" maxlength="20">
+      <button class="btn-primary" id="btnLookup">Continue</button>
+      <div class="error" id="pinError"></div>
+    </div>
+
+    <!-- STEP 2: confirm + shift/outlet + capture -->
+    <div id="stepAction" class="hidden">
+      <div class="greeting">
+        <span class="badge" id="actionBadge">CHECK IN</span>
+        <div class="name" id="trainerName"></div>
+      </div>
+
+      <label for="shiftSelect">Shift</label>
+      <select id="shiftSelect" class="select-field">
+        <option value="">Select shift</option>
+      </select>
+
+      <label for="outletSelect" style="margin-top:14px;">Outlet</label>
+      <select id="outletSelect" class="select-field">
+        <option value="">Select outlet</option>
+      </select>
+
+      <div id="otSection" class="hidden" style="margin-top:18px;">
+        <label class="ot-toggle-row">
+          <input type="checkbox" id="otCheckbox">
+          <span>I worked overtime today</span>
+        </label>
+        <div id="otHoursWrap" class="hidden" style="margin-top:10px;">
+          <label for="otHours">OT hours</label>
+          <input type="number" id="otHours" class="select-field" min="0.5" max="12" step="0.5" placeholder="e.g. 1.5">
+        </div>
+      </div>
+
+      <div style="height:18px;"></div>
+
+      <img id="preview" class="preview" alt="selfie preview">
+      <video id="cameraVideo" class="preview" autoplay playsinline muted></video>
+      <canvas id="cameraCanvas" class="hidden"></canvas>
+      <div class="camera-slot" id="cameraSlot">Starting camera…</div>
+      <button class="btn-action" id="btnSnap" style="background:var(--good); display:none;">📸 Capture selfie</button>
+      <button class="btn-ghost" id="btnRetake" style="display:none;">Retake</button>
+
+      <button class="btn-action" id="btnSubmit" disabled>Take selfie first</button>
+      <button class="btn-ghost" id="btnBack">Not you? Go back</button>
+      <div class="error" id="actionError"></div>
+    </div>
+
+    <!-- STEP 3: result -->
+    <div id="stepResult" class="hidden">
+      <div class="result" id="resultBox">
+        <div class="icon" id="resultIcon">✓</div>
+        <h2 id="resultTitle">Checked in</h2>
+        <p id="resultName"></p>
+        <p id="resultTime"></p>
+        <p id="resultLate"></p>
+        <p id="resultOt"></p>
+      </div>
+      <button class="btn-primary" id="btnDone">Done</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ⚠️ Paste your deployed Web App URL here
+  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyAxv7HBnROW_-49cEJsMmij4_PYu6SgOPDs3u4VZTA5ZkMEgaASixsL8scO4s04hxB/exec';
+
+  let currentPin = '';
+  let currentAction = 'IN';
+  let photoBase64 = '';
+  let coords = { lat: '', lng: '' };
+
+  // load shift/outlet options up front so they're ready by step 2
+  fetch(WEBAPP_URL + '?action=meta')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) return;
+      const shiftSelect = document.getElementById('shiftSelect');
+      data.shifts.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name + ' (' + s.start + ')';
+        shiftSelect.appendChild(opt);
+      });
+      const outletSelect = document.getElementById('outletSelect');
+      data.outlets.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = o;
+        outletSelect.appendChild(opt);
+      });
+    })
+    .catch(() => {});
+
+  // live clock
+  function tick() {
+    const now = new Date();
+    document.getElementById('liveTime').textContent =
+      now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('liveDate').textContent =
+      now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  tick();
+  setInterval(tick, 1000 * 30);
+
+  // try to grab GPS quietly in background (non-blocking)
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => { coords.lat = pos.coords.latitude; coords.lng = pos.coords.longitude; },
+      () => {},
+      { timeout: 5000 }
+    );
+  }
+
+  const stepPin = document.getElementById('stepPin');
+  const stepAction = document.getElementById('stepAction');
+  const stepResult = document.getElementById('stepResult');
+
+  document.getElementById('btnLookup').addEventListener('click', lookupPin);
+  document.getElementById('pinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') lookupPin();
+  });
+
+  function setLoading(btn, loading, label) {
+    btn.disabled = loading;
+    btn.innerHTML = loading ? '<span class="spin"></span>Please wait' : label;
+  }
+
+  function lookupPin() {
+    const pin = document.getElementById('pinInput').value.trim();
+    const err = document.getElementById('pinError');
+    err.textContent = '';
+    if (!pin) { err.textContent = 'Enter your IC number.'; return; }
+
+    const btn = document.getElementById('btnLookup');
+    setLoading(btn, true, 'Continue');
+
+    fetch(WEBAPP_URL + '?action=status&pin=' + encodeURIComponent(pin))
+      .then(r => r.json())
+      .then(data => {
+        setLoading(btn, false, 'Continue');
+        if (!data.ok) { err.textContent = data.error; return; }
+        currentPin = pin;
+        currentAction = data.nextType;
+        document.getElementById('trainerName').textContent = data.name;
+        document.getElementById('actionBadge').textContent =
+          currentAction === 'IN' ? 'CHECK IN' : 'CHECK OUT';
+        const btnSubmit = document.getElementById('btnSubmit');
+        btnSubmit.classList.toggle('out', currentAction === 'OUT');
+        document.getElementById('otSection').classList.toggle('hidden', currentAction !== 'OUT');
+        stepPin.classList.add('hidden');
+        stepAction.classList.remove('hidden');
+        startCamera();
+      })
+      .catch(() => {
+        setLoading(btn, false, 'Continue');
+        err.textContent = 'Connection error. Try again.';
+      });
+  }
+
+  let mediaStream = null;
+  const videoEl = document.getElementById('cameraVideo');
+  const canvasEl = document.getElementById('cameraCanvas');
+  const cameraSlot = document.getElementById('cameraSlot');
+  const btnSnap = document.getElementById('btnSnap');
+  const btnRetake = document.getElementById('btnRetake');
+
+  function stopCamera() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+    videoEl.style.display = 'none';
+  }
+
+  function startCamera() {
+    cameraSlot.textContent = 'Starting camera…';
+    cameraSlot.classList.remove('hidden');
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'none';
+    videoEl.style.display = 'none';
+    document.getElementById('preview').style.display = 'none';
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then(stream => {
+        mediaStream = stream;
+        videoEl.srcObject = stream;
+        videoEl.style.display = 'block';
+        cameraSlot.classList.add('hidden');
+        btnSnap.style.display = 'block';
+      })
+      .catch(() => {
+        cameraSlot.textContent = 'Camera access denied. Please allow camera permission and reload.';
+      });
+  }
+
+  btnSnap.addEventListener('click', () => {
+    canvasEl.width = videoEl.videoWidth;
+    canvasEl.height = videoEl.videoHeight;
+    canvasEl.getContext('2d').drawImage(videoEl, 0, 0);
+    photoBase64 = canvasEl.toDataURL('image/jpeg', 0.85);
+
+    const preview = document.getElementById('preview');
+    preview.src = photoBase64;
+    preview.style.display = 'block';
+
+    stopCamera();
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'block';
+
+    const btnSubmit = document.getElementById('btnSubmit');
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = currentAction === 'IN' ? 'Confirm Check In' : 'Confirm Check Out';
+  });
+
+  btnRetake.addEventListener('click', () => {
+    photoBase64 = '';
+    document.getElementById('preview').style.display = 'none';
+    document.getElementById('btnSubmit').disabled = true;
+    document.getElementById('btnSubmit').textContent = 'Take selfie first';
+    startCamera();
+  });
+
+  document.getElementById('btnBack').addEventListener('click', () => {
+    stopCamera();
+    photoBase64 = '';
+    document.getElementById('preview').style.display = 'none';
+    document.getElementById('btnSubmit').disabled = true;
+    document.getElementById('btnSubmit').textContent = 'Take selfie first';
+    document.getElementById('shiftSelect').value = '';
+    document.getElementById('outletSelect').value = '';
+    document.getElementById('otCheckbox').checked = false;
+    document.getElementById('otHours').value = '';
+    document.getElementById('otHoursWrap').classList.add('hidden');
+    stepAction.classList.add('hidden');
+    stepPin.classList.remove('hidden');
+  });
+
+  document.getElementById('otCheckbox').addEventListener('change', e => {
+    document.getElementById('otHoursWrap').classList.toggle('hidden', !e.target.checked);
+    if (!e.target.checked) document.getElementById('otHours').value = '';
+  });
+
+  document.getElementById('btnSubmit').addEventListener('click', () => {
+    const shift = document.getElementById('shiftSelect').value;
+    const outlet = document.getElementById('outletSelect').value;
+    const errEl = document.getElementById('actionError');
+    errEl.textContent = '';
+
+    if (!shift || !outlet) {
+      errEl.textContent = 'Please select both shift and outlet.';
+      return;
+    }
+
+    let otHours = 0;
+    if (currentAction === 'OUT' && document.getElementById('otCheckbox').checked) {
+      otHours = parseFloat(document.getElementById('otHours').value);
+      if (!otHours || otHours <= 0) {
+        errEl.textContent = 'Enter OT hours, or untick the OT box.';
+        return;
+      }
+    }
+
+    const btn = document.getElementById('btnSubmit');
+    const label = currentAction === 'IN' ? 'Confirm Check In' : 'Confirm Check Out';
+    setLoading(btn, true, label);
+
+    fetch(WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        pin: currentPin,
+        type: currentAction,
+        shift: shift,
+        outlet: outlet,
+        otHours: otHours,
+        photoBase64: photoBase64,
+        lat: coords.lat,
+        lng: coords.lng,
+        deviceTime: new Date().toString()
+      })
+    })
+      .then(r => r.json())
+      .then(data => {
+        setLoading(btn, false, label);
+        if (!data.ok) {
+          document.getElementById('actionError').textContent = data.error || 'Something went wrong.';
+          return;
+        }
+        showResult(data);
+      })
+      .catch(() => {
+        setLoading(btn, false, label);
+        document.getElementById('actionError').textContent = 'Connection error. Try again.';
+      });
+  });
+
+  function showResult(data) {
+    stepAction.classList.add('hidden');
+    stepResult.classList.remove('hidden');
+    const box = document.getElementById('resultBox');
+    const isLate = data.type === 'IN' && data.lateMinutes > 0;
+    box.classList.toggle('late', isLate);
+    document.getElementById('resultIcon').textContent = isLate ? '!' : '✓';
+    document.getElementById('resultTitle').textContent =
+      data.type === 'IN' ? 'Checked in' : 'Checked out';
+    document.getElementById('resultName').textContent = data.name;
+    document.getElementById('resultTime').textContent = 'Time: ' + data.time;
+    document.getElementById('resultLate').textContent =
+      isLate ? (data.lateMinutes + ' minutes late') : '';
+    document.getElementById('resultOt').textContent =
+      (data.otHours && data.otHours > 0) ? ('OT logged: ' + data.otHours + ' hours') : '';
+  }
+
+  document.getElementById('btnDone').addEventListener('click', () => {
+    stopCamera();
+    photoBase64 = '';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('preview').style.display = 'none';
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'none';
+    document.getElementById('btnSubmit').disabled = true;
+    document.getElementById('btnSubmit').textContent = 'Take selfie first';
+    document.getElementById('shiftSelect').value = '';
+    document.getElementById('outletSelect').value = '';
+    document.getElementById('otCheckbox').checked = false;
+    document.getElementById('otHours').value = '';
+    document.getElementById('otHoursWrap').classList.add('hidden');
+    stepResult.classList.add('hidden');
+    stepPin.classList.remove('hidden');
+  });
+</script>
+</body>
+</html>
