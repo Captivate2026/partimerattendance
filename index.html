@@ -150,6 +150,29 @@
     margin-top:14px;
     padding:8px;
   }
+  .icon-btn{
+    height:38px;
+    padding:0 16px 0 12px;
+    border-radius:100px;
+    background:var(--accent-dim);
+    color:var(--accent);
+    border:none;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    cursor:pointer;
+    flex-shrink:0;
+    font-size:13px;
+    font-weight:700;
+    font-family:inherit;
+    white-space:nowrap;
+    margin-top:16px;
+    -webkit-appearance:none;
+  }
+  .icon-btn:active{
+    background:var(--accent);
+    color:#fff;
+  }
   .greeting{
     text-align:center;
     margin-bottom:22px;
@@ -210,6 +233,34 @@
     min-height:16px;
   }
   .hidden{display:none !important;}
+  .gps-status{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    background:var(--paper);
+    border-radius:10px;
+    padding:9px 12px;
+    margin-bottom:16px;
+  }
+  .gps-status.ok{color:var(--good);}
+  .gps-status.warn{color:var(--late); background:#FBEAE0;}
+  .gps-status .retry-link{
+    margin-left:auto;
+    color:var(--accent);
+    font-weight:700;
+    cursor:pointer;
+    text-decoration:underline;
+    white-space:nowrap;
+  }
+  .gps-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:8px;
+    display:none;
+  }
   .spin{
     width:18px;height:18px;
     border:2px solid rgba(255,255,255,.4);
@@ -240,6 +291,19 @@
       <input type="tel" id="pinInput" inputmode="numeric" placeholder="e.g. 901231001234" maxlength="20">
       <button class="btn-primary" id="btnLookup">Continue</button>
       <div class="error" id="pinError"></div>
+      <div style="display:flex; justify-content:center;">
+        <button id="btnApplyLeave" class="icon-btn" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="12" y1="13" x2="12" y2="18"></line>
+            <line x1="9.5" y1="15.5" x2="14.5" y2="15.5"></line>
+          </svg>
+          <span>Apply Leave</span>
+        </button>
+      </div>
     </div>
 
     <!-- STEP 2: confirm + shift/outlet + capture -->
@@ -249,26 +313,24 @@
         <div class="name" id="trainerName"></div>
       </div>
 
-      <div id="shiftOutletFields">
-        <label for="projectSelect">Project</label>
-        <select id="projectSelect" class="select-field">
-          <option value="">Select project</option>
-          <option value="Grab">Grab</option>
-          <option value="Food Panda">Food Panda</option>
-        </select>
+      <label for="shiftSelect">Shift</label>
+      <select id="shiftSelect" class="select-field">
+        <option value="">Select shift</option>
+      </select>
 
-        <label for="shiftSelect" style="margin-top:14px;">Shift</label>
-        <select id="shiftSelect" class="select-field">
-          <option value="">Select shift</option>
-        </select>
+      <label for="outletSelect" style="margin-top:14px;">Outlet</label>
+      <select id="outletSelect" class="select-field">
+        <option value="">Select outlet</option>
+      </select>
 
-        <label for="outletSelect" style="margin-top:14px;">Outlet</label>
-        <select id="outletSelect" class="select-field">
-          <option value="">Select outlet</option>
-        </select>
-      </div>
+      <label for="projectSelect" style="margin-top:14px;">Project</label>
+      <select id="projectSelect" class="select-field">
+        <option value="">Select project</option>
+        <option value="Grab">Grab</option>
+        <option value="Food Panda">Food Panda</option>
+      </select>
 
-      <p class="sub hidden" id="checkoutInfo" style="margin:0 0 14px;"></p>
+      <div class="gps-status" id="gpsStatus" style="margin-top:14px;">📍 Getting your location…</div>
 
       <div id="otSection" class="hidden" style="margin-top:18px;">
         <label class="ot-toggle-row">
@@ -277,16 +339,7 @@
         </label>
         <div id="otHoursWrap" class="hidden" style="margin-top:10px;">
           <label for="otHours">OT hours</label>
-          <select id="otHours" class="select-field">
-            <option value="">Select hours</option>
-            <option value="0.5">0.5 hours</option>
-            <option value="1">1 hour</option>
-            <option value="1.5">1.5 hours</option>
-            <option value="2">2.0 hours</option>
-            <option value="2.5">2.5 hours</option>
-            <option value="3">3.0 hours</option>
-            <option value="3.5">3.5 hours</option>
-          </select>
+          <input type="number" id="otHours" class="select-field" min="0.5" max="12" step="0.5" placeholder="e.g. 1.5">
         </div>
       </div>
 
@@ -302,6 +355,7 @@
       <button class="btn-action" id="btnSubmit" disabled>Take selfie first</button>
       <button class="btn-ghost" id="btnBack">Not you? Go back</button>
       <div class="error" id="actionError"></div>
+      <div class="gps-note" id="gpsNote"></div>
     </div>
 
     <!-- STEP 3: result -->
@@ -314,7 +368,6 @@
         <p id="resultLate"></p>
         <p id="resultOt"></p>
       </div>
-      <button class="btn-action" id="btnCheckoutNow" style="display:none; margin-top:8px;">Check Out Now</button>
       <button class="btn-primary" id="btnDone">Done</button>
     </div>
 
@@ -327,9 +380,6 @@
 
   let currentPin = '';
   let currentAction = 'IN';
-  let currentProject = '';
-  let currentShift = '';
-  let currentOutlet = '';
   let photoBase64 = '';
   let coords = { lat: '', lng: '' };
 
@@ -366,20 +416,54 @@
   tick();
   setInterval(tick, 1000 * 30);
 
-  // try to grab GPS quietly in background (non-blocking)
-  if (navigator.geolocation) {
+  // Grab GPS in the background, but keep the picker informed via #gpsStatus.
+  // Non-blocking: check-in/out still works even if location never resolves —
+  // this just makes the failure visible instead of silent, and offers a retry.
+  function requestLocation() {
+    const statusEl = document.getElementById('gpsStatus');
+    if (!navigator.geolocation) {
+      if (statusEl) {
+        statusEl.className = 'gps-status warn';
+        statusEl.textContent = '⚠ Location not supported on this device.';
+      }
+      return;
+    }
+    if (statusEl) {
+      statusEl.className = 'gps-status';
+      statusEl.textContent = '📍 Getting your location…';
+    }
     navigator.geolocation.getCurrentPosition(
-      pos => { coords.lat = pos.coords.latitude; coords.lng = pos.coords.longitude; },
-      () => {},
-      { timeout: 5000 }
+      pos => {
+        coords.lat = pos.coords.latitude;
+        coords.lng = pos.coords.longitude;
+        if (statusEl) {
+          statusEl.className = 'gps-status ok';
+          statusEl.textContent = '📍 Location captured';
+        }
+      },
+      () => {
+        coords.lat = '';
+        coords.lng = '';
+        if (statusEl) {
+          statusEl.className = 'gps-status warn';
+          statusEl.innerHTML = '⚠ Location unavailable — enable Location for this browser <span class="retry-link" id="gpsRetry">Try again</span>';
+          const retryLink = document.getElementById('gpsRetry');
+          if (retryLink) retryLink.addEventListener('click', requestLocation);
+        }
+      },
+      { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 }
     );
   }
+  requestLocation();
 
   const stepPin = document.getElementById('stepPin');
   const stepAction = document.getElementById('stepAction');
   const stepResult = document.getElementById('stepResult');
 
   document.getElementById('btnLookup').addEventListener('click', lookupPin);
+  document.getElementById('btnApplyLeave').addEventListener('click', () => {
+    window.location.href = WEBAPP_URL + '?page=leave';
+  });
   document.getElementById('pinInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') lookupPin();
   });
@@ -413,22 +497,8 @@
         document.getElementById('otSection').classList.toggle('hidden', currentAction !== 'OUT');
         stepPin.classList.add('hidden');
         stepAction.classList.remove('hidden');
-
-        if (currentAction === 'OUT') {
-          currentProject = data.project || '';
-          currentShift = data.shift || '';
-          currentOutlet = data.outlet || '';
-          document.getElementById('shiftOutletFields').classList.add('hidden');
-          const info = document.getElementById('checkoutInfo');
-          info.textContent = 'Project: ' + (currentProject || '—') + ' · Shift: ' + (currentShift || '—') + ' · Outlet: ' + (currentOutlet || '—');
-          info.classList.remove('hidden');
-          cameraStarted = true;
-          startCamera();
-        } else {
-          document.getElementById('shiftOutletFields').classList.remove('hidden');
-          document.getElementById('checkoutInfo').classList.add('hidden');
-          promptForShiftOutlet();
-        }
+        startCamera();
+        requestLocation();
       })
       .catch(() => {
         setLoading(btn, false, 'Continue');
@@ -437,36 +507,11 @@
   }
 
   let mediaStream = null;
-  let cameraStarted = false;
   const videoEl = document.getElementById('cameraVideo');
   const canvasEl = document.getElementById('cameraCanvas');
   const cameraSlot = document.getElementById('cameraSlot');
   const btnSnap = document.getElementById('btnSnap');
   const btnRetake = document.getElementById('btnRetake');
-
-  function promptForShiftOutlet() {
-    cameraStarted = false;
-    videoEl.style.display = 'none';
-    document.getElementById('preview').style.display = 'none';
-    btnSnap.style.display = 'none';
-    btnRetake.style.display = 'none';
-    cameraSlot.classList.remove('hidden');
-    cameraSlot.textContent = 'Select project, shift and outlet to continue';
-  }
-
-  function maybeStartCamera() {
-    const project = document.getElementById('projectSelect').value;
-    const shift = document.getElementById('shiftSelect').value;
-    const outlet = document.getElementById('outletSelect').value;
-    if (project && shift && outlet && !cameraStarted) {
-      cameraStarted = true;
-      startCamera();
-    }
-  }
-
-  document.getElementById('projectSelect').addEventListener('change', maybeStartCamera);
-  document.getElementById('shiftSelect').addEventListener('change', maybeStartCamera);
-  document.getElementById('outletSelect').addEventListener('change', maybeStartCamera);
 
   function stopCamera() {
     if (mediaStream) {
@@ -526,19 +571,17 @@
 
   document.getElementById('btnBack').addEventListener('click', () => {
     stopCamera();
-    cameraStarted = false;
     photoBase64 = '';
     document.getElementById('preview').style.display = 'none';
     document.getElementById('btnSubmit').disabled = true;
     document.getElementById('btnSubmit').textContent = 'Take selfie first';
-    document.getElementById('shiftOutletFields').classList.remove('hidden');
-    document.getElementById('checkoutInfo').classList.add('hidden');
-    document.getElementById('projectSelect').value = '';
     document.getElementById('shiftSelect').value = '';
     document.getElementById('outletSelect').value = '';
+    document.getElementById('projectSelect').value = '';
     document.getElementById('otCheckbox').checked = false;
     document.getElementById('otHours').value = '';
     document.getElementById('otHoursWrap').classList.add('hidden');
+    document.getElementById('gpsNote').style.display = 'none';
     stepAction.classList.add('hidden');
     stepPin.classList.remove('hidden');
   });
@@ -549,25 +592,15 @@
   });
 
   document.getElementById('btnSubmit').addEventListener('click', () => {
+    const shift = document.getElementById('shiftSelect').value;
+    const outlet = document.getElementById('outletSelect').value;
+    const project = document.getElementById('projectSelect').value;
     const errEl = document.getElementById('actionError');
     errEl.textContent = '';
 
-    let project, shift, outlet;
-    if (currentAction === 'IN') {
-      project = document.getElementById('projectSelect').value;
-      shift = document.getElementById('shiftSelect').value;
-      outlet = document.getElementById('outletSelect').value;
-      if (!project || !shift || !outlet) {
-        errEl.textContent = 'Please select project, shift and outlet.';
-        return;
-      }
-      currentProject = project;
-      currentShift = shift;
-      currentOutlet = outlet;
-    } else {
-      project = currentProject;
-      shift = currentShift;
-      outlet = currentOutlet;
+    if (!shift || !outlet || !project) {
+      errEl.textContent = 'Please select shift, outlet, and project.';
+      return;
     }
 
     let otHours = 0;
@@ -583,14 +616,22 @@
     const label = currentAction === 'IN' ? 'Confirm Check In' : 'Confirm Check Out';
     setLoading(btn, true, label);
 
+    const gpsNote = document.getElementById('gpsNote');
+    if (!coords.lat) {
+      gpsNote.style.display = 'block';
+      gpsNote.textContent = 'Submitting without location — enable Location on your phone for next time.';
+    } else {
+      gpsNote.style.display = 'none';
+    }
+
     fetch(WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({
         pin: currentPin,
         type: currentAction,
-        project: project,
         shift: shift,
         outlet: outlet,
+        project: project,
         otHours: otHours,
         photoBase64: photoBase64,
         lat: coords.lat,
@@ -628,36 +669,10 @@
       isLate ? (data.lateMinutes + ' minutes late') : '';
     document.getElementById('resultOt').textContent =
       (data.otHours && data.otHours > 0) ? ('OT logged: ' + data.otHours + ' hours') : '';
-    document.getElementById('btnCheckoutNow').style.display =
-      data.type === 'IN' ? 'block' : 'none';
   }
-
-  document.getElementById('btnCheckoutNow').addEventListener('click', () => {
-    currentAction = 'OUT';
-    // currentShift / currentOutlet already hold the values just used at check-in
-    document.getElementById('actionBadge').textContent = 'CHECK OUT';
-    document.getElementById('btnSubmit').classList.add('out');
-    document.getElementById('otSection').classList.remove('hidden');
-    document.getElementById('shiftOutletFields').classList.add('hidden');
-    const info = document.getElementById('checkoutInfo');
-    info.textContent = 'Project: ' + (currentProject || '—') + ' · Shift: ' + (currentShift || '—') + ' · Outlet: ' + (currentOutlet || '—');
-    info.classList.remove('hidden');
-    document.getElementById('otCheckbox').checked = false;
-    document.getElementById('otHours').value = '';
-    document.getElementById('otHoursWrap').classList.add('hidden');
-    photoBase64 = '';
-    document.getElementById('btnSubmit').disabled = true;
-    document.getElementById('btnSubmit').textContent = 'Take selfie first';
-    cameraStarted = true;
-    stepResult.classList.add('hidden');
-    stepAction.classList.remove('hidden');
-    startCamera();
-  });
 
   document.getElementById('btnDone').addEventListener('click', () => {
     stopCamera();
-    cameraStarted = false;
-    document.getElementById('btnCheckoutNow').style.display = 'none';
     photoBase64 = '';
     document.getElementById('pinInput').value = '';
     document.getElementById('preview').style.display = 'none';
@@ -665,14 +680,13 @@
     btnRetake.style.display = 'none';
     document.getElementById('btnSubmit').disabled = true;
     document.getElementById('btnSubmit').textContent = 'Take selfie first';
-    document.getElementById('shiftOutletFields').classList.remove('hidden');
-    document.getElementById('checkoutInfo').classList.add('hidden');
-    document.getElementById('projectSelect').value = '';
     document.getElementById('shiftSelect').value = '';
     document.getElementById('outletSelect').value = '';
+    document.getElementById('projectSelect').value = '';
     document.getElementById('otCheckbox').checked = false;
     document.getElementById('otHours').value = '';
     document.getElementById('otHoursWrap').classList.add('hidden');
+    document.getElementById('gpsNote').style.display = 'none';
     stepResult.classList.add('hidden');
     stepPin.classList.remove('hidden');
   });
