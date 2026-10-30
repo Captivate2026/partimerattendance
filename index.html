@@ -306,29 +306,34 @@
       </div>
     </div>
 
-    <!-- STEP 2: confirm + shift/outlet + capture -->
+    <!-- STEP 2: confirm + shift/outlet/project + capture -->
     <div id="stepAction" class="hidden">
       <div class="greeting">
         <span class="badge" id="actionBadge">CHECK IN</span>
         <div class="name" id="trainerName"></div>
       </div>
 
-      <label for="shiftSelect">Shift</label>
-      <select id="shiftSelect" class="select-field">
-        <option value="">Select shift</option>
-      </select>
+      <!-- Check-in: picker chooses these. Check-out: hidden, shown as a read-only line below. -->
+      <div id="selectionFields">
+        <label for="shiftSelect">Shift</label>
+        <select id="shiftSelect" class="select-field">
+          <option value="">Select shift</option>
+        </select>
 
-      <label for="outletSelect" style="margin-top:14px;">Outlet</label>
-      <select id="outletSelect" class="select-field">
-        <option value="">Select outlet</option>
-      </select>
+        <label for="outletSelect" style="margin-top:14px;">Outlet</label>
+        <select id="outletSelect" class="select-field">
+          <option value="">Select outlet</option>
+        </select>
 
-      <label for="projectSelect" style="margin-top:14px;">Project</label>
-      <select id="projectSelect" class="select-field">
-        <option value="">Select project</option>
-        <option value="Grab">Grab</option>
-        <option value="Food Panda">Food Panda</option>
-      </select>
+        <label for="projectSelect" style="margin-top:14px;">Project</label>
+        <select id="projectSelect" class="select-field">
+          <option value="">Select project</option>
+          <option value="Grab">Grab</option>
+          <option value="Food Panda">Food Panda</option>
+        </select>
+      </div>
+
+      <p class="sub hidden" id="checkoutInfo" style="margin:0 0 14px; text-align:center;"></p>
 
       <div class="gps-status" id="gpsStatus" style="margin-top:14px;">📍 Getting your location…</div>
 
@@ -339,7 +344,16 @@
         </label>
         <div id="otHoursWrap" class="hidden" style="margin-top:10px;">
           <label for="otHours">OT hours</label>
-          <input type="number" id="otHours" class="select-field" min="0.5" max="12" step="0.5" placeholder="e.g. 1.5">
+          <select id="otHours" class="select-field">
+            <option value="">Select hours</option>
+            <option value="0.5">0.5 hours</option>
+            <option value="1">1 hour</option>
+            <option value="1.5">1.5 hours</option>
+            <option value="2">2.0 hours</option>
+            <option value="2.5">2.5 hours</option>
+            <option value="3">3.0 hours</option>
+            <option value="3.5">3.5 hours</option>
+          </select>
         </div>
       </div>
 
@@ -358,7 +372,22 @@
       <div class="gps-note" id="gpsNote"></div>
     </div>
 
-    <!-- STEP 3: result -->
+    <!-- HOME: shown after check-in, and whenever a checked-in picker enters their IC -->
+    <div id="stepHome" class="hidden">
+      <div class="greeting">
+        <span class="badge">CHECKED IN</span>
+        <div class="name" id="homeName"></div>
+      </div>
+      <p class="sub" id="homeStatus" style="text-align:center; margin:0 0 4px; color:var(--good); font-weight:700;"></p>
+      <p class="sub" id="homeLate" style="text-align:center; margin:0 0 4px; color:var(--late); display:none;"></p>
+      <p class="sub" id="homeInfo" style="text-align:center; margin:0 0 22px;"></p>
+
+      <button class="btn-action out" id="homeCheckout">Check Out</button>
+      <button class="btn-action" id="homeLeave" style="background:var(--accent-dim); color:var(--accent); font-size:16px; padding:16px; margin-top:12px;">Apply Leave</button>
+      <button class="btn-ghost" id="homeBack">Back to start</button>
+    </div>
+
+    <!-- STEP 3: result (shown after check-out) -->
     <div id="stepResult" class="hidden">
       <div class="result" id="resultBox">
         <div class="icon" id="resultIcon">✓</div>
@@ -380,6 +409,9 @@
 
   let currentPin = '';
   let currentAction = 'IN';
+  let currentShift = '';
+  let currentOutlet = '';
+  let currentProject = '';
   let photoBase64 = '';
   let coords = { lat: '', lng: '' };
 
@@ -459,6 +491,7 @@
   const stepPin = document.getElementById('stepPin');
   const stepAction = document.getElementById('stepAction');
   const stepResult = document.getElementById('stepResult');
+  const stepHome = document.getElementById('stepHome');
 
   document.getElementById('btnLookup').addEventListener('click', lookupPin);
   document.getElementById('btnApplyLeave').addEventListener('click', () => {
@@ -496,9 +529,23 @@
         btnSubmit.classList.toggle('out', currentAction === 'OUT');
         document.getElementById('otSection').classList.toggle('hidden', currentAction !== 'OUT');
         stepPin.classList.add('hidden');
-        stepAction.classList.remove('hidden');
-        startCamera();
-        requestLocation();
+
+        if (currentAction === 'OUT') {
+          // Already checked in: land on Home (Check Out / Apply Leave).
+          currentShift = data.shift || '';
+          currentOutlet = data.outlet || '';
+          currentProject = data.project || '';
+          showHome('You are checked in.', '');
+        } else {
+          currentShift = '';
+          currentOutlet = '';
+          currentProject = '';
+          stepAction.classList.remove('hidden');
+          requestLocation();
+          document.getElementById('selectionFields').classList.remove('hidden');
+          document.getElementById('checkoutInfo').classList.add('hidden');
+          promptForSelections();
+        }
       })
       .catch(() => {
         setLoading(btn, false, 'Continue');
@@ -507,11 +554,38 @@
   }
 
   let mediaStream = null;
+  let cameraStarted = false;
   const videoEl = document.getElementById('cameraVideo');
   const canvasEl = document.getElementById('cameraCanvas');
   const cameraSlot = document.getElementById('cameraSlot');
   const btnSnap = document.getElementById('btnSnap');
   const btnRetake = document.getElementById('btnRetake');
+
+  // Camera only opens once shift, outlet and project are all chosen,
+  // so none of them get skipped.
+  function promptForSelections() {
+    cameraStarted = false;
+    videoEl.style.display = 'none';
+    document.getElementById('preview').style.display = 'none';
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'none';
+    cameraSlot.classList.remove('hidden');
+    cameraSlot.textContent = 'Select shift, outlet and project to continue';
+  }
+
+  function maybeStartCamera() {
+    const shift = document.getElementById('shiftSelect').value;
+    const outlet = document.getElementById('outletSelect').value;
+    const project = document.getElementById('projectSelect').value;
+    if (shift && outlet && project && !cameraStarted) {
+      cameraStarted = true;
+      startCamera();
+    }
+  }
+
+  document.getElementById('shiftSelect').addEventListener('change', maybeStartCamera);
+  document.getElementById('outletSelect').addEventListener('change', maybeStartCamera);
+  document.getElementById('projectSelect').addEventListener('change', maybeStartCamera);
 
   function stopCamera() {
     if (mediaStream) {
@@ -569,12 +643,20 @@
     startCamera();
   });
 
-  document.getElementById('btnBack').addEventListener('click', () => {
+  function resetActionForm() {
     stopCamera();
+    cameraStarted = false;
     photoBase64 = '';
+    currentShift = '';
+    currentOutlet = '';
+    currentProject = '';
     document.getElementById('preview').style.display = 'none';
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'none';
     document.getElementById('btnSubmit').disabled = true;
     document.getElementById('btnSubmit').textContent = 'Take selfie first';
+    document.getElementById('selectionFields').classList.remove('hidden');
+    document.getElementById('checkoutInfo').classList.add('hidden');
     document.getElementById('shiftSelect').value = '';
     document.getElementById('outletSelect').value = '';
     document.getElementById('projectSelect').value = '';
@@ -582,6 +664,10 @@
     document.getElementById('otHours').value = '';
     document.getElementById('otHoursWrap').classList.add('hidden');
     document.getElementById('gpsNote').style.display = 'none';
+  }
+
+  document.getElementById('btnBack').addEventListener('click', () => {
+    resetActionForm();
     stepAction.classList.add('hidden');
     stepPin.classList.remove('hidden');
   });
@@ -592,22 +678,35 @@
   });
 
   document.getElementById('btnSubmit').addEventListener('click', () => {
-    const shift = document.getElementById('shiftSelect').value;
-    const outlet = document.getElementById('outletSelect').value;
-    const project = document.getElementById('projectSelect').value;
     const errEl = document.getElementById('actionError');
     errEl.textContent = '';
+
+    // Check-in: read the dropdowns. Check-out with known check-in details:
+    // use the carried-over values instead.
+    let shift, outlet, project;
+    if (currentShift && currentOutlet && currentProject) {
+      shift = currentShift;
+      outlet = currentOutlet;
+      project = currentProject;
+    } else {
+      shift = document.getElementById('shiftSelect').value;
+      outlet = document.getElementById('outletSelect').value;
+      project = document.getElementById('projectSelect').value;
+    }
 
     if (!shift || !outlet || !project) {
       errEl.textContent = 'Please select shift, outlet, and project.';
       return;
     }
+    currentShift = shift;
+    currentOutlet = outlet;
+    currentProject = project;
 
     let otHours = 0;
     if (currentAction === 'OUT' && document.getElementById('otCheckbox').checked) {
       otHours = parseFloat(document.getElementById('otHours').value);
       if (!otHours || otHours <= 0) {
-        errEl.textContent = 'Enter OT hours, or untick the OT box.';
+        errEl.textContent = 'Select OT hours, or untick the OT box.';
         return;
       }
     }
@@ -642,6 +741,24 @@
       .then(r => r.json())
       .then(data => {
         setLoading(btn, false, label);
+        if (!data.ok && data.duplicate) {
+          // Already recorded (double-tap, or a retry after a slow network):
+          // show where they stand instead of an error.
+          if (currentAction === 'IN') {
+            showHome('You are already checked in.', '');
+          } else {
+            stepAction.classList.add('hidden');
+            stepResult.classList.remove('hidden');
+            document.getElementById('resultBox').classList.remove('late');
+            document.getElementById('resultIcon').textContent = '✓';
+            document.getElementById('resultTitle').textContent = 'Already checked out';
+            document.getElementById('resultName').textContent = document.getElementById('trainerName').textContent;
+            document.getElementById('resultTime').textContent = '';
+            document.getElementById('resultLate').textContent = '';
+            document.getElementById('resultOt').textContent = '';
+          }
+          return;
+        }
         if (!data.ok) {
           document.getElementById('actionError').textContent = data.error || 'Something went wrong.';
           return;
@@ -655,6 +772,11 @@
   });
 
   function showResult(data) {
+    if (data.type === 'IN') {
+      showHome('✓ Checked in at ' + data.time,
+               data.lateMinutes > 0 ? (data.lateMinutes + ' minutes late') : '');
+      return;
+    }
     stepAction.classList.add('hidden');
     stepResult.classList.remove('hidden');
     const box = document.getElementById('resultBox');
@@ -671,22 +793,75 @@
       (data.otHours && data.otHours > 0) ? ('OT logged: ' + data.otHours + ' hours') : '';
   }
 
-  document.getElementById('btnDone').addEventListener('click', () => {
+  function showHome(statusText, lateText) {
+    stepAction.classList.add('hidden');
+    stepResult.classList.add('hidden');
+    stepPin.classList.add('hidden');
+    document.getElementById('homeName').textContent = document.getElementById('trainerName').textContent;
+    document.getElementById('homeStatus').textContent = statusText;
+    const lateEl = document.getElementById('homeLate');
+    lateEl.textContent = lateText;
+    lateEl.style.display = lateText ? 'block' : 'none';
+    const parts = [];
+    if (currentProject) parts.push('Project: ' + currentProject);
+    if (currentShift) parts.push('Shift: ' + currentShift);
+    if (currentOutlet) parts.push('Outlet: ' + currentOutlet);
+    document.getElementById('homeInfo').textContent = parts.join(' · ');
+    stepHome.classList.remove('hidden');
+  }
+
+  // Home -> check-out screen. Uses the project/shift/outlet from check-in;
+  // if they're unknown, shows the dropdowns so the picker can still check out.
+  function beginCheckout() {
+    currentAction = 'OUT';
     stopCamera();
     photoBase64 = '';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('preview').style.display = 'none';
-    btnSnap.style.display = 'none';
-    btnRetake.style.display = 'none';
-    document.getElementById('btnSubmit').disabled = true;
-    document.getElementById('btnSubmit').textContent = 'Take selfie first';
-    document.getElementById('shiftSelect').value = '';
-    document.getElementById('outletSelect').value = '';
-    document.getElementById('projectSelect').value = '';
+    cameraStarted = false;
+    document.getElementById('actionBadge').textContent = 'CHECK OUT';
+    const btnSubmit = document.getElementById('btnSubmit');
+    btnSubmit.classList.add('out');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Take selfie first';
+    document.getElementById('otSection').classList.remove('hidden');
     document.getElementById('otCheckbox').checked = false;
     document.getElementById('otHours').value = '';
     document.getElementById('otHoursWrap').classList.add('hidden');
-    document.getElementById('gpsNote').style.display = 'none';
+    document.getElementById('actionError').textContent = '';
+    requestLocation();
+
+    if (currentShift && currentOutlet && currentProject) {
+      document.getElementById('selectionFields').classList.add('hidden');
+      const info = document.getElementById('checkoutInfo');
+      info.textContent = 'Project: ' + currentProject + ' · Shift: ' + currentShift + ' · Outlet: ' + currentOutlet;
+      info.classList.remove('hidden');
+      cameraStarted = true;
+      startCamera();
+    } else {
+      document.getElementById('selectionFields').classList.remove('hidden');
+      document.getElementById('checkoutInfo').classList.add('hidden');
+      document.getElementById('shiftSelect').value = '';
+      document.getElementById('outletSelect').value = '';
+      document.getElementById('projectSelect').value = '';
+      promptForSelections();
+    }
+    stepHome.classList.add('hidden');
+    stepAction.classList.remove('hidden');
+  }
+
+  document.getElementById('homeCheckout').addEventListener('click', beginCheckout);
+  document.getElementById('homeLeave').addEventListener('click', () => {
+    window.location.href = WEBAPP_URL + '?page=leave';
+  });
+  document.getElementById('homeBack').addEventListener('click', () => {
+    resetActionForm();
+    document.getElementById('pinInput').value = '';
+    stepHome.classList.add('hidden');
+    stepPin.classList.remove('hidden');
+  });
+
+  document.getElementById('btnDone').addEventListener('click', () => {
+    resetActionForm();
+    document.getElementById('pinInput').value = '';
     stepResult.classList.add('hidden');
     stepPin.classList.remove('hidden');
   });
