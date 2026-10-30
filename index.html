@@ -695,6 +695,14 @@
       }
     }
 
+    // Check-in needs the phone's location. Stop here (selfie is kept) and
+    // ask for it again rather than sending a request that will be refused.
+    if (currentAction === 'IN' && !coords.lat) {
+      errEl.textContent = 'Location is required to check in. Turn on Location on your phone and allow it for this page, tap "Try again" above, then confirm.';
+      requestLocation();
+      return;
+    }
+
     const btn = document.getElementById('btnSubmit');
     const label = currentAction === 'IN' ? 'Confirm Check In' : 'Confirm Check Out';
     setLoading(btn, true, label);
@@ -745,6 +753,9 @@
         }
         if (!data.ok) {
           document.getElementById('actionError').textContent = data.error || 'Something went wrong.';
+          // Too far / no location: get a fresh GPS reading so they can retry
+          // after moving closer or turning Location on.
+          if (data.tooFar || data.needLocation) requestLocation();
           return;
         }
         showResult(data);
